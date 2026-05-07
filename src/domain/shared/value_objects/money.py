@@ -1,26 +1,37 @@
 ﻿from dataclasses import dataclass
+from decimal import Decimal
 
 
 @dataclass(frozen=True)
 class Money:
-    amount: float
-    currency: str = "IDR"
+    amount: Decimal
+    currency: str
 
-    def __post_init__(self):
-        if self.amount < 0:
-            raise ValueError("Money amount cannot be negative")
-        if not self.currency:
-            raise ValueError("Currency is required")
+    def __post_init__(self) -> None:
+        if not isinstance(self.amount, Decimal):
+            object.__setattr__(self, "amount", Decimal(str(self.amount)))
+        if self.amount < Decimal("0"):
+            raise ValueError("Money amount cannot be negative.")
+        if not self.currency or not self.currency.strip():
+            raise ValueError("Currency cannot be empty.")
 
     def add(self, other: "Money") -> "Money":
-        self._assert_same_currency(other)
+        if self.currency != other.currency:
+            raise ValueError(
+                f"Cannot add money with different currencies: "
+                f"{self.currency} vs {other.currency}"
+            )
         return Money(self.amount + other.amount, self.currency)
 
-    def multiply(self, factor: float) -> "Money":
+    def multiply(self, factor: int) -> "Money":
         if factor < 0:
-            raise ValueError("Factor cannot be negative")
-        return Money(self.amount * factor, self.currency)
+            raise ValueError("Multiplication factor cannot be negative.")
+        return Money(self.amount * Decimal(factor), self.currency)
 
-    def _assert_same_currency(self, other: "Money") -> None:
-        if self.currency != other.currency:
-            raise ValueError("Cannot operate on different currencies")
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Money):
+            return False
+        return self.amount == other.amount and self.currency == other.currency
+
+    def __repr__(self) -> str:
+        return f"Money(amount={self.amount}, currency={self.currency!r})"
