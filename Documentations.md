@@ -1,4 +1,3 @@
-````md
 # Documentation
 
 ## 1. Ubiquitous Language Glossary
@@ -354,4 +353,3 @@ Notification Service
     ↓
 Customer Receives Confirmation
 ```
-````
