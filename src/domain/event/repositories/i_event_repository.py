@@ -1,14 +1,23 @@
 ﻿from abc import ABC, abstractmethod
-from typing import Optional
-from src.domain.event.event import Event
+from typing import List, Optional
+from uuid import UUID
+
+from ..entities.event import Event
 
 
 class IEventRepository(ABC):
-    @abstractmethod
-    async def find_by_id(self, id: str) -> Optional[Event]: ...
 
     @abstractmethod
-    async def find_all_published(self) -> list[Event]: ...
+    def save(self, event: Event) -> None:
+        """Persist a new or updated Event aggregate."""
+        ...
 
     @abstractmethod
-    async def save(self, event: Event) -> None: ...
+    def find_by_id(self, event_id: UUID) -> Optional[Event]:
+        """Return the Event with the given id, or None if not found."""
+        ...
+
+    @abstractmethod
+    def find_all_published(self) -> List[Event]:
+        """Return all Events with status Published."""
+        ...

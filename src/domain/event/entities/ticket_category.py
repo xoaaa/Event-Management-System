@@ -1,58 +1,67 @@
-﻿from enum import Enum
-from src.domain.shared.value_objects.money import Money
-from src.domain.shared.value_objects.date_range import DateRange
+﻿from datetime import datetime
+from uuid import UUID
 
-
-class TicketCategoryStatus(str, Enum):
-    ACTIVE = "Active"
-    INACTIVE = "Inactive"
+from ...shared.value_objects.money import Money
 
 
 class TicketCategory:
     def __init__(
         self,
-        id: str,
-        event_id: str,
+        id: UUID,
+        event_id: UUID,
         name: str,
         price: Money,
         quota: int,
-        sales_period: DateRange,
-        reserved_quota: int = 0,
-        status: TicketCategoryStatus = TicketCategoryStatus.ACTIVE,
-    ):
-        if price.amount < 0:
-            raise ValueError("Ticket price cannot be negative")
+        sales_start_date: datetime,
+        sales_end_date: datetime,
+    ) -> None:
+        if not name or not name.strip():
+            raise ValueError("Ticket category name cannot be empty.")
         if quota <= 0:
-            raise ValueError("Ticket quota must be greater than zero")
+            raise ValueError("Ticket category quota must be greater than zero.")
+        if sales_end_date < sales_start_date:
+            raise ValueError("Sales end date cannot be earlier than sales start date.")
 
-        self.id = id
-        self.event_id = event_id
-        self.name = name
-        self.price = price
-        self.quota = quota
-        self.sales_period = sales_period
-        self.reserved_quota = reserved_quota
-        self.status = status
+        self._id = id
+        self._event_id = event_id
+        self._name = name
+        self._price = price
+        self._quota = quota
+        self._sales_start_date = sales_start_date
+        self._sales_end_date = sales_end_date
+        self._is_active: bool = True
+
+    def disable(self) -> None:
+        self._is_active = False
 
     @property
-    def remaining_quota(self) -> int:
-        return self.quota - self.reserved_quota
+    def id(self) -> UUID:
+        return self._id
+
+    @property
+    def event_id(self) -> UUID:
+        return self._event_id
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def price(self) -> Money:
+        return self._price
+
+    @property
+    def quota(self) -> int:
+        return self._quota
+
+    @property
+    def sales_start_date(self) -> datetime:
+        return self._sales_start_date
+
+    @property
+    def sales_end_date(self) -> datetime:
+        return self._sales_end_date
 
     @property
     def is_active(self) -> bool:
-        return self.status == TicketCategoryStatus.ACTIVE
-
-    def disable(self) -> None:
-        self.status = TicketCategoryStatus.INACTIVE
-
-    def reserve_quota(self, quantity: int) -> None:
-        if not self.is_active:
-            raise ValueError("Ticket category is not active")
-        if quantity <= 0:
-            raise ValueError("Quantity must be greater than zero")
-        if self.remaining_quota < quantity:
-            raise ValueError("Insufficient ticket quota")
-        self.reserved_quota += quantity
-
-    def release_quota(self, quantity: int) -> None:
-        self.reserved_quota = max(0, self.reserved_quota - quantity)
+        return self._is_active
