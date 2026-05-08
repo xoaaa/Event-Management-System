@@ -1,52 +1,48 @@
-﻿from enum import Enum
-from uuid import uuid4
-from src.domain.shared.value_objects.ticket_code import TicketCode
+﻿from uuid import UUID
 
-
-class TicketStatus(str, Enum):
-    ACTIVE = "Active"
-    CHECKED_IN = "CheckedIn"
-    CANCELLED = "Cancelled"
-    REFUND_REQUIRED = "RefundRequired"
+from ...shared.value_objects.ticket_code import TicketCode
+from .ticket_status import TicketStatus
 
 
 class Ticket:
     def __init__(
         self,
-        id: str,
-        booking_id: str,
-        ticket_category_id: str,
-        code: TicketCode,
-        status: TicketStatus = TicketStatus.ACTIVE,
-    ):
-        self.id = id
-        self.booking_id = booking_id
-        self.ticket_category_id = ticket_category_id
-        self.code = code
-        self.status = status
-
-    @classmethod
-    def create(cls, booking_id: str, ticket_category_id: str) -> "Ticket":
-        return cls(
-            id=str(uuid4()),
-            booking_id=booking_id,
-            ticket_category_id=ticket_category_id,
-            code=TicketCode.generate(),
-        )
+        id: UUID,
+        booking_id: UUID,
+        ticket_category_id: UUID,
+        ticket_code: TicketCode,
+    ) -> None:
+        self._id = id
+        self._booking_id = booking_id
+        self._ticket_category_id = ticket_category_id
+        self._ticket_code = ticket_code
+        self._status: TicketStatus = TicketStatus.ACTIVE
 
     def check_in(self) -> None:
-        if self.status == TicketStatus.CHECKED_IN:
-            raise ValueError("Ticket has already been checked in")
-        if self.status != TicketStatus.ACTIVE:
-            raise ValueError("Only active tickets can be checked in")
-        self.status = TicketStatus.CHECKED_IN
+        if self._status == TicketStatus.CHECKED_IN:
+            raise ValueError("Ticket has already been checked in.")
+        self._status = TicketStatus.CHECKED_IN
 
-    def cancel(self) -> None:
-        self.status = TicketStatus.CANCELLED
+    @property
+    def id(self) -> UUID:
+        return self._id
 
-    def mark_refund_required(self) -> None:
-        self.status = TicketStatus.REFUND_REQUIRED
+    @property
+    def booking_id(self) -> UUID:
+        return self._booking_id
+
+    @property
+    def ticket_category_id(self) -> UUID:
+        return self._ticket_category_id
+
+    @property
+    def ticket_code(self) -> TicketCode:
+        return self._ticket_code
+
+    @property
+    def status(self) -> TicketStatus:
+        return self._status
 
     @property
     def is_checked_in(self) -> bool:
-        return self.status == TicketStatus.CHECKED_IN
+        return self._status == TicketStatus.CHECKED_IN

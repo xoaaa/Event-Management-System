@@ -1,19 +1,23 @@
 ﻿from abc import ABC, abstractmethod
-from typing import Optional
-from src.domain.booking.booking import Booking
+from typing import List, Optional
+from uuid import UUID
+
+from ..entities.booking import Booking
 
 
 class IBookingRepository(ABC):
-    @abstractmethod
-    async def find_by_id(self, id: str) -> Optional[Booking]: ...
 
     @abstractmethod
-    async def find_by_customer_and_event(
-        self, customer_id: str, event_id: str
-    ) -> Optional[Booking]: ...
+    def save(self, booking: Booking) -> None:
+        """Persist a new or updated Booking aggregate."""
+        ...
 
     @abstractmethod
-    async def find_expired_pending(self) -> list[Booking]: ...
+    def find_by_id(self, booking_id: UUID) -> Optional[Booking]:
+        """Return the Booking with the given id, or None if not found."""
+        ...
 
     @abstractmethod
-    async def save(self, booking: Booking) -> None: ...
+    def find_all_pending_by_event(self, event_id: UUID) -> List[Booking]:
+        """Return all pending payment Bookings for a given event."""
+        ...
