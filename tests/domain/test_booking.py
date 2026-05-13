@@ -6,9 +6,10 @@ from datetime import datetime
 from domain.booking.entities.booking import Booking
 from domain.booking.entities.booking_status import BookingStatus
 from domain.booking.entities.ticket_status import TicketStatus
+from domain.booking.services.booking_domain_service import BookingDomainService
 from domain.shared.value_objects.money import Money
 
-from .conftest import UNIT_PRICE, TOTAL_2, DEADLINE
+from .conftest import UNIT_PRICE, TOTAL_2, DEADLINE, SALES_START, SALES_END
 
 
 class TestBookingCreation:
@@ -93,3 +94,76 @@ class TestTicketCheckIn:
         paid_booking.check_in_ticket(ticket.id)
         assert ticket.status == TicketStatus.CHECKED_IN
         assert ticket.is_checked_in is True
+
+
+class TestBookingDomainService:
+    def test_create_booking_succeeds_for_published_event(
+        self, draft_event_with_category
+    ):
+        draft_event_with_category.publish()
+        draft_event_with_category.pull_domain_events()
+        category = draft_event_with_category.ticket_categories[0]
+
+        service = BookingDomainService()
+        booking = service.create_booking(
+            event=draft_event_with_category,
+            ticket_category_id=category.id,
+            booker_id=uuid.uuid4(),
+            quantity=2,
+            payment_deadline=DEADLINE,
+        )
+
+        assert booking.event_id == draft_event_with_category.id
+        assert booking.ticket_category_id == category.id
+        assert booking.quantity == 2
+        assert booking.status == BookingStatus.PENDING_PAYMENT
+
+    def test_create_booking_fails_for_unpublished_event(
+        self, draft_event_with_category
+    ):
+        service = BookingDomainService()
+        category = draft_event_with_category.ticket_categories[0]
+
+        with pytest.raises(ValueError, match="Published"):
+            service.create_booking(
+                event=draft_event_with_category,
+                ticket_category_id=category.id,
+                booker_id=uuid.uuid4(),
+                quantity=1,
+                payment_deadline=DEADLINE,
+            )
+
+    def test_create_booking_fails_for_disabled_ticket_category(
+        self, draft_event_with_category
+    ):
+        draft_event_with_category.publish()
+        draft_event_with_category.pull_domain_events()
+        category = draft_event_with_category.ticket_categories[0]
+        draft_event_with_category.disable_ticket_category(category.id)
+        draft_event_with_category.pull_domain_events()
+
+        service = BookingDomainService()
+        with pytest.raises(ValueError, match="disabled"):
+            service.create_booking(
+                event=draft_event_with_category,
+                ticket_category_id=category.id,
+                booker_id=uuid.uuid4(),
+                quantity=1,
+                payment_deadline=DEADLINE,
+            )
+
+    def test_create_booking_fails_for_nonexistent_ticket_category(
+        self, draft_event_with_category
+    ):
+        draft_event_with_category.publish()
+        draft_event_with_category.pull_domain_events()
+
+        service = BookingDomainService()
+        with pytest.raises(ValueError, match="does not exist"):
+            service.create_booking(
+                event=draft_event_with_category,
+                ticket_category_id=uuid.uuid4(),
+                booker_id=uuid.uuid4(),
+                quantity=1,
+                payment_deadline=DEADLINE,
+            )
